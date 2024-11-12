@@ -84,7 +84,8 @@ def midi_folder_2_tensors(midi_folder):
     PR_list = list(map(midi_to_piano_roll, music_list))
 
     # Convert the piano rolls into sequences
-    sequences = list(filter(None, map(roll2sequence, PR_list)))
+    # sequences = list(filter(None, map(roll2sequence, PR_list)))
+    sequences = list( map(roll2sequence, PR_list))
 
     # Convert sequences to tensors
     tensors = list(map(roll2tensor, sequences))
