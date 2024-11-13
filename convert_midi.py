@@ -1,6 +1,8 @@
 import os
 import torch
 from music21 import midi, note, chord
+from torch.utils.data import Dataset, DataLoader
+
 
 def open_midi(midi_path, remove_drums):
     # There is an one-line method to read MIDIs
@@ -64,3 +66,38 @@ def midi_folder_to_tensors(midi_folder_path):
 
     return tensors
 
+
+class MidiDataset(Dataset):
+    def __init__(self, midi_folder_path, remove_drums=True, time_resolution=0.25):
+        self.midi_folder_path = midi_folder_path
+        self.midi_files = [os.path.join(midi_folder_path, f) for f in os.listdir(midi_folder_path) if f.endswith('.mid')]
+        self.remove_drums = remove_drums
+        self.time_resolution = time_resolution
+
+    def __len__(self):
+        return len(self.midi_files)
+
+    def __getitem__(self, idx):
+        midi_path = self.midi_files[idx]
+        tensor = midi_to_binary_tensor(midi_path, self.remove_drums, self.time_resolution)
+        return tensor
+
+
+def custom_collate_fn(batch):
+    # Pads sequences in batch to the maximum sequence length in the batch
+    max_time_steps = max(tensor.shape[0] for tensor in batch)
+    pitch_range = 128  # Standard MIDI pitch range
+
+    # Padding the tensors to have the same time dimension
+    padded_batch = torch.zeros((len(batch), max_time_steps, pitch_range), dtype=torch.int8)
+
+    for i, tensor in enumerate(batch):
+        time_steps = tensor.shape[0]
+        padded_batch[i, :time_steps, :] = tensor
+
+    return padded_batch
+
+def get_midi_data_loader(midi_folder_path, batch_size=4, shuffle=True, num_workers=0, remove_drums=True, time_resolution=0.25):
+    dataset = MidiDataset(midi_folder_path, remove_drums, time_resolution)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=custom_collate_fn)
+    return data_loader
