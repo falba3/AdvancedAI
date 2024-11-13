@@ -1,7 +1,4 @@
 
-tensors_folder/classical_tensors.pt
-tensors_folder/pop_tensors.pt
-tensors_folder/rock_tensors.pt
 venv/lib/python3.9/site-packages/__pycache__/isympy.cpython-39.pyc
 venv/lib/python3.9/site-packages/filelock/__pycache__/__init__.cpython-39.pyc
 venv/lib/python3.9/site-packages/filelock/__pycache__/_api.cpython-39.pyc
