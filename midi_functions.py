@@ -1,7 +1,7 @@
 import os
 import torch
 from torch.utils.data import Dataset, DataLoader
-from music21 import midi, note, chord
+from music21 import midi, note, chord, stream
 import matplotlib.pyplot as plt
 
 
@@ -41,6 +41,7 @@ def midi_to_binary_tensor(midi_path, remove_drums=True, time_resolution=0.25):
                 for pitch in note_or_chord.pitches:
                     tensor[start_time, int(pitch.ps)] = 1
     return tensor
+
 
 def plot_piano_roll(binary_tensor, title):
     """
@@ -104,3 +105,43 @@ def create_dataloader(truncated_tensors, batch_size=16, shuffle=True):
     dataset = MidiTensorDataset(truncated_tensors)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     return dataloader
+
+
+def binary_tensor_to_midi(tensor, time_resolution=0.25, threshold=0.5):
+    """
+    :param tensor: torch tensor to be converted to MIDI file
+    :param time_resolution: defaults 0.25. Represents what type of note the tensors will be represented by
+    :param threshold: probability predicted above which a note will be represented
+    :return: MIDI stream audio file that can be listened to
+    """
+    pitch_range = 128
+    midi_stream = stream.Stream()
+    for t, time_step in enumerate(tensor):
+        for pitch in range(pitch_range):
+            if time_step[pitch] > threshold:  # Threshold for note activation
+                new_note = note.Note(pitch)
+                new_note.offset = t * time_resolution
+                new_note.quarterLength = time_resolution
+                midi_stream.append(new_note)
+    return midi_stream
+
+
+def save_midi(midi_file, outfile_name):
+    """
+    :param midi_file: MIDI stream to be saved
+    :param outfile_name: file name to save MIDI file as
+    """
+    mf = midi.translate.streamToMidiFile(midi_file)
+    mf.open(outfile_name, 'wb')
+    mf.write()
+    mf.close()
+    print(f"Reconstructed MIDI saved at {outfile_name}")
+
+
+def tensor_stats(tensor):
+    """
+    :param tensor: torch.Tensor to find stats for
+    """
+    print("Min:", tensor.min())
+    print("Max:", tensor.max())
+    print("Mean:", tensor.mean())
